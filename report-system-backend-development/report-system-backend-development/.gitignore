@@ -1,0 +1,54 @@
+# --------------------
+# PYTHON PROJECT (report system)
+# --------------------
+
+# Virtual Environment
+/report-system-venv
+
+# Dependencies/Build
+*.pyc
+__pycache__/
+/projects
+
+# Geospatial Cache/Output
+/tilecache
+/test_output
+/app/__pycache__/
+
+# Runtime/Database Files
+/detections.db
+*.db  # General rule for SQLite or other local DBs
+seed_database.pyc # Compiled Python file if created
+
+# --------------------
+# NODE.JS PROJECT (node server)
+# --------------------
+
+# Dependencies
+/node_modules
+/package-lock.json
+
+# Logs/Artifacts
+stream-monitor-error.log
+stream-monitor.log
+*.log
+
+# Build Artifacts
+/dist
+/build
+
+# --------------------
+# COMMON EXCLUSIONS
+# --------------------
+
+# Environment Variables (CRUCIAL)
+# The actual environment file contains sensitive keys and must not be committed.
+.env
+
+# Common OS & Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Ignore START_SERVER.txt if it's a local temporary file and not essential documentation
+START_SERVER.txt

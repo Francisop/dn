@@ -1,0 +1,40 @@
+/python server/
+/cuda-venv/
+
+*.pyc
+__pycache__/
+
+# Distribution and packaging
+/dist/
+/build/
+*.egg-info/
+
+
+yolo11l.pt
+yolov8n.pt
+yolov8x6.pt
+
+# Requirements files backups
+requirements_backup.txt
+
+# Jupyter and other IDE related files (if you use them)
+.ipynb_checkpoints
+.vscode/
+
+# Logs and intermediate files
+*.log
+*.tmp
+*.bak
+/runs/  # Common directory for ML/YOLO training output
+
+# --- Operating System & Editor Files ---
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Linux
+*~
+# --- End OS/Editor Files ---

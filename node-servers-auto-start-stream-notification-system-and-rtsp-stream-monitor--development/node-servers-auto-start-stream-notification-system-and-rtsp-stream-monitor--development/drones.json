@@ -1,0 +1,29 @@
+[
+  {
+    "sn": "1581F5FJD238900D79WS",
+    "name": "Drone Alpha",
+    "alias": "Alpha-01",
+    "userName": "username",
+    "password": "password",
+    "port": "8554",
+    "cameras": ["67-0-0", "39-0-7"]
+  },
+  {
+    "sn": "1581F6GKB23B4004008E",
+    "name": "Drone Beta",
+    "alias": "Beta-02",
+    "userName": "djiuser_beta123",
+    "password": "BetaPass456@",
+    "port": "8554",
+    "cameras": ["50-65535-0", "39-0-7"]
+  },
+  {
+    "sn": "1581F5FKC249B00DNL4D",
+    "name": "Drone Gamma",
+    "alias": "Gamma-03",
+    "userName": "djiuser_gamma789",
+    "password": "GammaPass789@",
+    "port": "8554",
+    "cameras": ["39-0-7", "52-0-0", "20-0-0"]
+  }
+]

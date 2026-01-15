@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone WebSocket Event Monitor</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        button.primary {
+            background: #007bff;
+            color: white;
+        }
+        button.primary:hover {
+            background: #0056b3;
+        }
+        button.success {
+            background: #28a745;
+            color: white;
+        }
+        button.success:hover {
+            background: #218838;
+        }
+        button.danger {
+            background: #dc3545;
+            color: white;
+        }
+        button.danger:hover {
+            background: #c82333;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        #events {
+            background: white;
+            max-height: 600px;
+            overflow-y: auto;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .event {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .event.info {
+            background: #d1ecf1;
+            border-color: #17a2b8;
+        }
+        .event.drone {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        .event.system {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        .event.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .event-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .event-time {
+            font-size: 12px;
+            color: #666;
+        }
+        .event-body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: rgba(0,0,0,0.05);
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .clear-btn {
+            float: right;
+            background: #6c757d;
+            color: white;
+        }
+        .clear-btn:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚁 Drone Event Monitor</h1>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-value" id="totalEvents">0</div>
+            <div class="stat-label">Total Events</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="droneEvents">0</div>
+            <div class="stat-label">Drone Events</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="systemEvents">0</div>
+            <div class="stat-label">System Events</div>
+        </div>
+    </div>
+
+    <div id="statusDiv" class="status connecting">
+        🔄 Connecting to WebSocket server...
+    </div>
+
+    <div class="controls">
+        <h3>Subscription Controls</h3>
+        <button class="success" onclick="subscribeAll()">📡 Subscribe to All Drones</button>
+        <input type="text" id="droneSerial" placeholder="Enter drone serial (e.g., TEST123)">
+        <button class="primary" onclick="subscribeSpecific()">🎯 Subscribe to Specific Drone</button>
+        <button class="danger" onclick="unsubscribe()">🚫 Unsubscribe</button>
+        <button class="clear-btn" onclick="clearEvents()">🗑️ Clear Events</button>
+    </div>
+
+    <div id="events">
+        <p style="color: #999; text-align: center;"><em>Waiting for events...</em></p>
+    </div>
+
+    <script>
+        let socket;
+        let eventCount = { total: 0, drone: 0, system: 0 };
+
+        // Connect to WebSocket server
+        function connectWebSocket() {
+            socket = io('http://localhost:5000', {
+                path: '/ws/events',
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connected', (data) => {
+                updateStatus('connected', `✓ Connected (Client ID: ${data.clientId})`);
+                console.log('Connected:', data);
+                addEvent('info', 'Connected to WebSocket server', data);
+            });
+
+            socket.on('subscribed', (data) => {
+                console.log('Subscribed:', data);
+                addEvent('info', 'Subscription Updated', data);
+            });
+
+            socket.on('unsubscribed', (data) => {
+                console.log('Unsubscribed:', data);
+                addEvent('info', 'Unsubscribed', data);
+            });
+
+            socket.on('drone:event', (event) => {
+                console.log('Drone Event:', event);
+                eventCount.drone++;
+                eventCount.total++;
+                updateStats();
+                addEvent('drone', `Drone Event: ${event.event}`, event);
+            });
+
+            socket.on('system:event', (event) => {
+                console.log('System Event:', event);
+                eventCount.system++;
+                eventCount.total++;
+                updateStats();
+                addEvent('system', `System Event: ${event.event}`, event);
+            });
+
+            socket.on('server:shutdown', (data) => {
+                console.log('Server shutting down:', data);
+                addEvent('error', 'Server Shutdown', data);
+            });
+
+            socket.on('pong', (data) => {
+                console.log('Pong:', data);
+                addEvent('info', 'Pong Received', data);
+            });
+
+            socket.on('disconnect', () => {
+                updateStatus('disconnected', '✗ Disconnected from server');
+                console.log('Disconnected');
+                addEvent('error', 'Disconnected', { message: 'Connection lost' });
+            });
+
+            socket.on('connect_error', (error) => {
+                updateStatus('disconnected', '✗ Connection error');
+                console.error('Connection error:', error);
+                addEvent('error', 'Connection Error', { error: error.message });
+            });
+        }
+
+        function updateStatus(status, message) {
+            const statusDiv = document.getElementById('statusDiv');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function updateStats() {
+            document.getElementById('totalEvents').textContent = eventCount.total;
+            document.getElementById('droneEvents').textContent = eventCount.drone;
+            document.getElementById('systemEvents').textContent = eventCount.system;
+        }
+
+        function subscribeAll() {
+            if (!socket || !socket.connected) {
+                alert('Not connected to server!');
+                return;
+            }
+            socket.emit('subscribe', { all: true });
+            console.log('Subscribed to all drones');
+        }
+
+        function subscribeSpecific() {
+            const serial = document.getElementById('droneSerial').value.trim();
+            if (!serial) {
+                alert('Please enter a drone serial number');
+                return;
+            }
+            if (!socket || !socket.connected) {
+                alert('Not connected to server!');
+                return;
+            }
+            socket.emit('subscribe', { droneSerial: serial });
+            console.log(`Subscribed to drone: ${serial}`);
+        }
+
+        function unsubscribe() {
+            if (!socket || !socket.connected) {
+                alert('Not connected to server!');
+                return;
+            }
+            socket.emit('unsubscribe');
+            console.log('Unsubscribed from all');
+        }
+
+        function clearEvents() {
+            document.getElementById('events').innerHTML = '<p style="color: #999; text-align: center;"><em>Events cleared. Waiting for new events...</em></p>';
+        }
+
+        function addEvent(type, title, data) {
+            const eventsDiv = document.getElementById('events');
+            const time = new Date().toLocaleTimeString();
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event ${type}`;
+
+            // Clear placeholder if this is first event
+            if (eventsDiv.children.length === 1 && eventsDiv.children[0].querySelector('em')) {
+                eventsDiv.innerHTML = '';
+            }
+
+            eventDiv.innerHTML = `
+                <div class="event-header">
+                    <span>${title}</span>
+                    <span class="event-time">${time}</span>
+                </div>
+                <div class="event-body">${JSON.stringify(data, null, 2)}</div>
+            `;
+
+            eventsDiv.insertBefore(eventDiv, eventsDiv.firstChild);
+
+            // Limit to last 50 events
+            while (eventsDiv.children.length > 50) {
+                eventsDiv.removeChild(eventsDiv.lastChild);
+            }
+        }
+
+        // Send ping every 30 seconds to test connection
+        setInterval(() => {
+            if (socket && socket.connected) {
+                socket.emit('ping');
+            }
+        }, 30000);
+
+        // Initialize connection on page load
+        connectWebSocket();
+    </script>
+</body>
+</html>
